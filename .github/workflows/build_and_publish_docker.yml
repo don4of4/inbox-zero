@@ -3,7 +3,7 @@ run-name: "Build Inbox Zero Docker Image"
 
 on:
   push:
-    branches: ["main"]
+    branches: ["**"]
     tags: ["v*"]
   workflow_dispatch:
 
