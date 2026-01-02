@@ -66,3 +66,5 @@ jobs:
           build-args: |
             NEXT_PUBLIC_BASE_URL=https://inbox.donaldscott.com
             NEXT_PUBLIC_BYPASS_PREMIUM_CHECKS=true
+            NEXT_PUBLIC_BUILD_SHA=${{ github.sha }}
+            NEXT_PUBLIC_BUILD_TIME=${{ github.event.head_commit.timestamp }}

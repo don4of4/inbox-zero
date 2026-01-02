@@ -69,7 +69,7 @@ type FormValues = z.infer<typeof formSchema>;
 export function ExpirationSection() {
   const { emailAccountId } = useAccount();
   const { data, isLoading, mutate } = useSWR<ExpirationSettingsResponse>(
-    "/api/user/expiration-settings",
+    emailAccountId ? "/api/user/expiration-settings" : null,
   );
 
   const {

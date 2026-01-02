@@ -270,6 +270,17 @@ export function SideNav({ ...props }: React.ComponentProps<typeof Sidebar>) {
           </ClientOnly>
         )}
 
+        {env.NEXT_PUBLIC_BUILD_SHA && (
+          <div className="px-2 py-1 text-xs text-muted-foreground">
+            <div>Build: {env.NEXT_PUBLIC_BUILD_SHA.slice(0, 7)}</div>
+            {env.NEXT_PUBLIC_BUILD_TIME && (
+              <div>
+                {new Date(env.NEXT_PUBLIC_BUILD_TIME).toLocaleDateString()}
+              </div>
+            )}
+          </div>
+        )}
+
         <SidebarMenuButton asChild>
           <Link href="https://docs.getinboxzero.com" target="_blank">
             <BookIcon className="size-4" />

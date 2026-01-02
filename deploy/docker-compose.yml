@@ -1,0 +1,60 @@
+# Inbox Zero - Self-hosted deployment for TrueNAS
+# Place this in your TrueNAS appdata directory
+
+version: "3.8"
+
+services:
+  inbox-zero:
+    image: ghcr.io/don4of4/inbox-zero:latest
+    container_name: inbox-zero
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - inbox-zero-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: inbox-zero-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: inbox
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: inbox_zero
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - inbox-zero-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inbox -d inbox_zero"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: inbox-zero-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - inbox-zero-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  inbox-zero-network:
+    driver: bridge
