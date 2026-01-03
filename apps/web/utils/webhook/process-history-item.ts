@@ -187,10 +187,12 @@ export async function processHistoryItem(
       }
     }
 
+    const appliedLabels: string[] = [];
+
     if (hasAutomationRules && hasAiAccess) {
       logger.info("Running rules...");
 
-      await runRules({
+      const ruleResults = await runRules({
         provider,
         message: parsedMessage,
         rules,
@@ -199,6 +201,15 @@ export async function processHistoryItem(
         modelType: "default",
         logger,
       });
+
+      // Extract applied labels from rule results for expiration analysis
+      for (const result of ruleResults) {
+        for (const action of result.actionItems || []) {
+          if (action.label) {
+            appliedLabels.push(action.label);
+          }
+        }
+      }
     }
 
     // Analyze expiration for emails (runs in background)
@@ -208,6 +219,7 @@ export async function processHistoryItem(
         analyzeAndSetExpiration({
           emailAccount,
           message: parsedMessage,
+          appliedLabels,
           logger,
         }).catch((error) =>
           logger.error("Failed to analyze expiration", { error, messageId }),

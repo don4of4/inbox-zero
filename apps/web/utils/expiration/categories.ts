@@ -23,17 +23,65 @@ export const categoryDefaults: Record<
 /**
  * Detect if an email should be analyzed for expiration.
  * Returns the category if expirable, null if not.
+ *
+ * @param message - The parsed email message
+ * @param appliedLabels - Labels that were just applied by AI rules (solves chicken-and-egg problem)
  */
 export function detectExpirableCategory(
   message: ParsedMessage,
+  appliedLabels?: string[],
 ): ExpirableCategory {
-  const labels = message.labelIds || [];
+  const gmailLabels = message.labelIds || [];
 
-  // Check Gmail categories
-  if (labels.includes(GmailLabel.SOCIAL)) return "SOCIAL";
-  if (labels.includes(GmailLabel.PROMOTIONS)) return "MARKETING";
-  if (labels.includes(GmailLabel.UPDATES)) return "NOTIFICATION";
-  if (labels.includes(GmailLabel.FORUMS)) return "NEWSLETTER";
+  // Combine Gmail labels with AI-applied labels (normalized to lowercase for comparison)
+  const appliedLabelsLower = (appliedLabels || []).map((l) => l.toLowerCase());
+
+  // Check Gmail categories first
+  if (gmailLabels.includes(GmailLabel.SOCIAL)) return "SOCIAL";
+  if (gmailLabels.includes(GmailLabel.PROMOTIONS)) return "MARKETING";
+  if (gmailLabels.includes(GmailLabel.UPDATES)) return "NOTIFICATION";
+  if (gmailLabels.includes(GmailLabel.FORUMS)) return "NEWSLETTER";
+
+  // Check AI-applied labels for category keywords
+  for (const label of appliedLabelsLower) {
+    if (
+      label.includes("social") ||
+      label.includes("twitter") ||
+      label.includes("facebook") ||
+      label.includes("linkedin")
+    )
+      return "SOCIAL";
+    if (
+      label.includes("promo") ||
+      label.includes("marketing") ||
+      label.includes("sale") ||
+      label.includes("offer")
+    )
+      return "MARKETING";
+    if (
+      label.includes("notification") ||
+      label.includes("alert") ||
+      label.includes("update") ||
+      label.includes("shipping") ||
+      label.includes("delivery") ||
+      label.includes("tracking")
+    )
+      return "NOTIFICATION";
+    if (
+      label.includes("newsletter") ||
+      label.includes("digest") ||
+      label.includes("weekly") ||
+      label.includes("daily")
+    )
+      return "NEWSLETTER";
+    if (
+      label.includes("calendar") ||
+      label.includes("event") ||
+      label.includes("meeting") ||
+      label.includes("invite")
+    )
+      return "CALENDAR";
+  }
 
   // Check for calendar invites (via attachments)
   const hasCalendarAttachment = message.attachments?.some(
@@ -48,7 +96,6 @@ export function detectExpirableCategory(
   const listUnsubscribe = message.headers?.["list-unsubscribe"];
   if (listUnsubscribe) return "NEWSLETTER";
 
-  // Could add more heuristics here
   return null;
 }
 

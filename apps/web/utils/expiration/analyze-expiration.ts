@@ -134,10 +134,12 @@ Based on the content, when should this email be archived?`;
 export async function analyzeAndSetExpiration({
   emailAccount,
   message,
+  appliedLabels,
   logger,
 }: {
   emailAccount: EmailAccountWithAI;
   message: ParsedMessage;
+  appliedLabels?: string[];
   logger: Logger;
 }): Promise<void> {
   // 1. Check if expiration is enabled for this account
@@ -151,7 +153,8 @@ export async function analyzeAndSetExpiration({
   }
 
   // 2. Detect if this email category should be analyzed
-  const category = detectExpirableCategory(message);
+  // Pass applied labels from rule execution to detect categories that were just applied
+  const category = detectExpirableCategory(message, appliedLabels);
   if (!category) {
     logger.trace("Email not in expirable category");
     return;

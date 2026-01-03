@@ -230,7 +230,7 @@ async function processMessageBatch({
     const results = await Promise.allSettled(
       batch.map(async (message) => {
         // Run rules first
-        await runRules({
+        const ruleResults = await runRules({
           provider: emailProvider,
           message,
           rules,
@@ -241,10 +241,21 @@ async function processMessageBatch({
           skipArchive,
         });
 
+        // Extract applied labels from rule results to pass to expiration analyzer
+        const appliedLabels: string[] = [];
+        for (const result of ruleResults) {
+          for (const action of result.actionItems || []) {
+            if (action.label) {
+              appliedLabels.push(action.label);
+            }
+          }
+        }
+
         // Then analyze expiration (reuses already-fetched message, graceful on error)
         await analyzeAndSetExpiration({
           emailAccount,
           message,
+          appliedLabels,
           logger,
         }).catch((error) => {
           logger.warn("Failed to analyze expiration", {
