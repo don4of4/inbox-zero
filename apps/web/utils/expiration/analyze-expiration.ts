@@ -21,7 +21,9 @@ const expirationSchema = z.object({
   expiresAt: z
     .string()
     .nullable()
-    .describe("ISO date string when this email should expire, or null"),
+    .describe(
+      "Expiration date in YYYY-MM-DD format (e.g., '2026-02-09'), or null if shouldExpire is false",
+    ),
   reason: z
     .string()
     .describe("Brief explanation of why this expiration date was chosen"),
@@ -85,7 +87,7 @@ Default expiration: ${formatDateForLLM(defaultExpiration)}
 
 Return your response in JSON format with:
 - shouldExpire: boolean
-- expiresAt: ISO date string or null
+- expiresAt: date in YYYY-MM-DD format (e.g., "2026-02-09") or null
 - reason: brief explanation`;
 
   const prompt = `Analyze this email and determine its expiration date:
@@ -111,10 +113,31 @@ Based on the content, when should this email be archived?`;
 
     const { shouldExpire, expiresAt, reason } = result.object;
 
+    // Parse and validate the date
+    let parsedDate: Date | null = null;
+    if (expiresAt) {
+      const date = new Date(expiresAt);
+      // Check if date is valid (Invalid Date returns NaN for getTime())
+      if (!Number.isNaN(date.getTime())) {
+        parsedDate = date;
+      } else {
+        // LLM returned invalid date string, use default expiration
+        parsedDate = defaultExpiration;
+      }
+    }
+
+    // If shouldExpire but no valid date, use default
+    if (shouldExpire && !parsedDate) {
+      parsedDate = defaultExpiration;
+    }
+
     return {
       shouldExpire,
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
-      reason,
+      expiresAt: parsedDate,
+      reason:
+        parsedDate === defaultExpiration && expiresAt
+          ? `${reason} (using default: LLM returned invalid date "${expiresAt}")`
+          : reason,
     };
   } catch (error) {
     // Fallback to default on error
